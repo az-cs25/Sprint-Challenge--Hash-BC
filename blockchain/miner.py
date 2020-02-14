@@ -1,5 +1,6 @@
 import hashlib
 import requests
+import json
 
 import sys
 
@@ -8,6 +9,8 @@ from uuid import uuid4
 from timeit import default_timer as timer
 
 import random
+
+DIFFICULTY = 6
 
 
 def proof_of_work(last_proof):
@@ -19,12 +22,18 @@ def proof_of_work(last_proof):
     - p is the previous proof, and p' is the new proof
     - Use the same method to generate SHA-256 hashes as the examples in class
     """
-
     start = timer()
-
     print("Searching for next proof")
-    proof = 0
+    proof = random.randrange(0, 11570)
+    # take stringified hash of last_proof:
+    last_proof_string = json.dumps(last_proof, sort_keys=True).encode()
+    last_hash = hashlib.sha256(last_proof_string).hexdigest()
+
     #  TODO: Your code here
+    while valid_proof(last_hash, proof) is False:
+        proof += random.randrange(0, 100)
+
+    # - p is the previous proof, and p' is the new proof
 
     print("Proof found: " + str(proof) + " in " + str(timer() - start))
     return proof
@@ -40,7 +49,12 @@ def valid_proof(last_hash, proof):
     """
 
     # TODO: Your code here!
-    pass
+
+    proof_string = json.dumps(proof, sort_keys=True).encode()
+
+    guess_hash = hashlib.sha256(proof_string).hexdigest()
+
+    return last_hash[-DIFFICULTY:] == guess_hash[0:DIFFICULTY]
 
 
 if __name__ == '__main__':
@@ -66,6 +80,7 @@ if __name__ == '__main__':
         # Get the last proof from the server
         r = requests.get(url=node + "/last_proof")
         data = r.json()
+        print(data)
         new_proof = proof_of_work(data.get('proof'))
 
         post_data = {"proof": new_proof,
